@@ -1,8 +1,7 @@
-""" This module simulates a ball pitching robot"""
-
+""" Code for simulating pitching robot """
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.integrate import ode
+import matplotlib.pyplot as plt
 
 G = 9.81
 L1, L_1C = 0.3, 0.2071
@@ -15,10 +14,7 @@ TAU_MAX = 180.0
 Q1_MAX = 3.787
 POWER_MAX = 270.0
 
-Q10 = 5.0*np.pi/6.0
-Q20 = np.pi + np.arcsin(L1/(2*L2))
-Q10_DOT = 0.0
-Q20_DOT = 0.0
+
 
 def pitching(_, states, tau):
     """
@@ -68,20 +64,46 @@ def ball_states(q):
 
     return np.array([x_b, y_b, x_b_dot, y_b_dot])
 
-def main():
-    """ Main function for module"""
-    q_0 = np.array([Q10, Q20, Q10_DOT, Q20_DOT])
-    t_0 = 0.0
+def predict_length(ball_state):
+    x = ball_state[0]
+    y = ball_state[1]
+    xdot = ball_state[2]
+    ydot = ball_state[3]
 
+    t_impact = (ydot + np.sqrt(ydot**2 + 2*y*G))/G
+    x_final = x + xdot*t_impact
+
+    return x_final
+
+
+def get_argument(name, default, **kwargs):
+    value = default
+    if name in kwargs:
+        value = kwargs[name]
+    return value
+
+def simulate_with_controller(tau_func, **kwargs):
+    """ Generator for simulating the ball throwing
+    :param tau_func, function giving tau as function of time
+    """
+    def _print(*args, **kwargs):
+        if print_info:
+            print(*args, **kwargs)
+
+    speed_factor = get_argument('speed_factor', 1.0, **kwargs)
+    step_size = get_argument('step_size', 0.1, **kwargs)
+    print_info = get_argument('print_info', False, **kwargs)
+    live_plot = get_argument('live_plot', False, **kwargs)
+
+    q_0 = np.array([5.0*np.pi/6.0, np.pi + np.arcsin(L1/(2*L2)), 0.0, 0.0])
+    t_0 = 0.0
     pitch_sys = ode(pitching).set_integrator('dopri5')
     pitch_sys.set_initial_value(q_0, t_0)
-    print("Initial conditions:", q_0)
+    _print("Initial conditions:", q_0)
 
-    speed_factor = 2.0
-    step = 0.01
     x_b, y_b, _, _ = ball_states(pitch_sys.y)
     while pitch_sys.successful() and x_b < 0.0 and pitch_sys.t < 10:
-        tau = -80
+        tau = tau_func(pitch_sys.t)
 
         # Limit power
         if abs(pitch_sys.y[2]) > 0.1:
@@ -89,21 +111,22 @@ def main():
             tau = max(min(tau, tau_max), -tau_max)
 
         pitch_sys.set_f_params(tau)
-        pitch_sys.integrate(pitch_sys.t + step)
+        pitch_sys.integrate(pitch_sys.t + step_size)
         # Limit q1'
         pitch_sys.y[2] = max(min(pitch_sys.y[2], Q1_MAX), -Q1_MAX)
 
         x_1, y_1 = joint_position(pitch_sys.y[0])
         x_b, y_b, _, _ = ball_states(pitch_sys.y)
 
-        plt.scatter(x_1, y_1, c='y')
-        plt.scatter(x_b, y_b, c='b')
+        if live_plot:
+            plt.scatter(x_1, y_1, c='y')
+            plt.scatter(x_b, y_b, c='b')
+            plt.pause(step_size/speed_factor)
 
-        plt.pause(step/speed_factor)
-
-    print("Pitching done at {0} seconds".format(pitch_sys.t))
-    print("Pitch final state", pitch_sys.y)
-    print("Ball flying initial state", ball_states(pitch_sys.y))
+    _print("Pitching done at {0} seconds".format(pitch_sys.t))
+    _print("Pitch final state", pitch_sys.y)
+    _print("Ball flying initial state", ball_states(pitch_sys.y))
+    _print("Distance prediction", predict_length(ball_states(pitch_sys.y)))
 
     x_b, y_b, x_b_dot, y_b_dot = ball_states(pitch_sys.y)
     x_0 = np.array([x_b, y_b, x_b_dot, y_b_dot])
@@ -112,14 +135,22 @@ def main():
     flying_sys.set_initial_value(x_0, t_0)
 
     while flying_sys.successful() and y_b >= 0:
-        flying_sys.integrate(flying_sys.t + step)
+        flying_sys.integrate(flying_sys.t + step_size)
         x_b, y_b = flying_sys.y[0], flying_sys.y[1]
-        plt.scatter(x_b, y_b, c='b')
-        plt.pause(step/speed_factor)
 
-    print("Ball was thrown to", x_b)
+        if live_plot:
+            plt.scatter(x_b, y_b, c='b')
+            plt.pause(step_size/speed_factor)
 
-    plt.show()
+    if live_plot:
+        plt.show()
 
-if __name__ == "__main__":
-    main()
+    return x_b
+
+
+
+
+
+
+
+
