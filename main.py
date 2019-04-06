@@ -8,9 +8,28 @@ def main():
     sim_args['step_size'] = 0.01
     #sim_args['print_info'] = False
 
-    tau = lambda t: 0 + 30*t
-    distance = sim.simulate_with_controller(tau, **sim_args)
-    print("Ball was thrown {0} meters".format(distance))
+    best_distance = -float('inf')
+    best_params = (0,0,0)
+    n = 0
+    n_failed = 0
+    p0 = -60
+    for p2 in range(-50, 50, 1):
+        for p1 in range(-50, 1):
+            n += 1
+            try:
+                tau_func = lambda t: p2*t**2 + p1*t + p0
+                distance = sim.simulate_with_controller(tau_func, **sim_args)
+                if distance > best_distance:
+                    best_distance = distance
+                    best_params = (p2, p1, p0)
+                    print("Ball was thrown {0} meters with {1}\
+                          ".format(distance, best_params))
+            except RuntimeError as e:
+                n_failed += 1
+                pass
+
+    print(n, n_failed)
+
 
 
 if __name__ == "__main__":

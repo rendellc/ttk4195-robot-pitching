@@ -115,6 +115,10 @@ def simulate_with_controller(tau_func, **kwargs):
         # Limit q1'
         pitch_sys.y[2] = max(min(pitch_sys.y[2], Q1_MAX), -Q1_MAX)
 
+        # Controller must ensure q1 is monotonically decreasing
+        if pitch_sys.y[2] > 0:
+            raise RuntimeError("Controller must ensure monotonic motion")
+
         x_1, y_1 = joint_position(pitch_sys.y[0])
         x_b, y_b, _, _ = ball_states(pitch_sys.y)
 
