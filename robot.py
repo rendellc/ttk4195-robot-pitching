@@ -71,7 +71,7 @@ class PitchingBot(RobotBase):
         if abs(tau*q[2]) > self.power_max:
             return violated_result, "too high power"
         if q[2] > 0:
-            return violated_result, "Controller must ensure q1 is monotonically decreasing: {0} {1}".format(t, q)
+            return violated_result, "Controller must ensure q1 is monotonically decreasing"
 
         return True, ""
 
