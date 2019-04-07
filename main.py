@@ -1,12 +1,16 @@
 import simulation as sim
 import numpy as np
 
+
 def main():
     """ Main function for module """
     sim_args = {}
     sim_args['speed_factor'] = 1.0
     sim_args['step_size'] = 0.01
     #sim_args['print_info'] = False
+    sim_args['live_plot'] = False
+    sim_args['early_stop_pitching'] = True
+    sim_args['skip_flying'] = True
 
     best_distance = -float('inf')
     best_params = (0,0,0)
@@ -17,7 +21,8 @@ def main():
         for p1 in range(-50, 1):
             n += 1
             try:
-                tau_func = lambda t: p2*t**2 + p1*t + p0
+                def tau_func(t,q,qd):
+                    return p2*t**2 + p1*t + p0
                 distance = sim.simulate_with_controller(tau_func, **sim_args)
                 if distance > best_distance:
                     best_distance = distance
