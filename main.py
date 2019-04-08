@@ -8,7 +8,12 @@ import json
 def controller_template(parameters):
     p = parameters # shorter name
 
-    controller_func = lambda t, q: p[0]*q[0] + p[1]*q[1] + p[2]*t**2 + p[3]*t + p[4]
+    # desired q1 path
+    q1 = lambda t: p[3]*t**3 + p[2]*t**2 + p[1]*t + p[0]
+    q1dot = lambda t: 3*p[3]*t**2 + 2*p[2]*t + p[1]
+
+    # Use the two last parameters as controller gains
+    controller_func = lambda t, q: p[~1]*(q1(t) - q[0]) + p[~0]*(q1dot(t) - q[2])
 
     return controller_func
 
@@ -17,7 +22,7 @@ def main():
 
     best_reward = 0.0
     best_parameters = [0,0,0,0,0]
-    limits = [(-10,10), (-10,10), (-10,10), (-10,10), (-20,0)]
+    limits = [(-10,10), (-10,10), (-10,10), (0,10), (0,10)]
     with open('results.json', 'r') as infile:
         data = json.load(infile)
         best_reward = data.get('reward', best_reward)
@@ -26,13 +31,16 @@ def main():
         for i in range(len(limits)):
             limits[i] = (p[i] - 10, p[i] + 10)
 
-    n_episodes = 1
+    n_episodes = 100000
+    n_failed = 0
     for i in range(n_episodes):
-        if i%100000 == 0:
-            print(i)
+        if i%1000 == 0:
+            print(i, n_failed)
 
         controller_func, parameters = env.action_sample(controller_template, limits)
         reward, info = env.episode(controller_func)
+        if reward < 0:
+            n_failed += 1
 
         p = parameters
         if reward > best_reward:
@@ -66,7 +74,7 @@ def main():
         plt.pause(env.sim.step_size)
 
     for point in flying_path:
-        plt.scatter(point[1][0], point[1][1], c='b')
+        plt.scatter(point[1][0], point[1][1], c='g')
         plt.pause(env.sim.step_size)
 
 
