@@ -54,7 +54,7 @@ class Environment():
         """
         parameters = []
         for limit in limits:
-            parameters.append(random.randint(limit[0], limit[1]))
+            parameters.append(random.uniform(limit[0], limit[1]))
         controller_func = controller_template(parameters)
         return controller_func, parameters
 
