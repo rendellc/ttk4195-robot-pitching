@@ -1,4 +1,4 @@
-# ttk4195-robot-pitching
+# Robot ball throwing challange
 
 This repository contains code for simulating and controlling a ball-throwing robot.
 
