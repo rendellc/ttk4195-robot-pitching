@@ -31,7 +31,7 @@ def main():
         for i in range(len(limits)):
             limits[i] = (p[i] - 10, p[i] + 10)
 
-    n_episodes = 100000
+    n_episodes = 0
     n_failed = 0
     for i in range(n_episodes):
         if i%1000 == 0:
@@ -65,18 +65,47 @@ def main():
     pitching_path = info['pitching_path']
     flying_path = info['flying_path']
 
+    t = []
+    q1 = []
+    q2 = []
+    xb = []
+    yb = []
+
     #plt.axis([-1,1,0,2])
     for point in pitching_path:
         ball = env.pitch_bot.ball_states(point[1])
         (x1, y1), (x2, y2) = env.pitch_bot.joint_positions(point[1][0], point[1][1])
+
+        # save data for animation
+        t.append(point[0])
+        q1.append(point[1][0])
+        q2.append(point[1][1])
+        xb.append(ball[0])
+        yb.append(ball[1])
+
+        # live plot
         plt.scatter(ball[0], ball[1], c='b')
         plt.scatter(x1, y1, c='y')
         plt.pause(env.sim.step_size)
 
     for point in flying_path:
+        # save data for animation
+        t.append(point[0])
+        xb.append(point[1][0])
+        yb.append(point[1][1])
+
+        # live plot
         plt.scatter(point[1][0], point[1][1], c='g')
         plt.pause(env.sim.step_size)
 
+    paths = {}
+    paths['time'] = t
+    paths['q1'] = q1
+    paths['q2'] = q2
+    paths['xb'] = xb
+    paths['yb'] = yb
+    with open('paths.json', 'w') as file:
+        json.dump(paths, file)
 
     plt.show()
 
